@@ -25,8 +25,15 @@ the background — reparented to PID 1, no controlling terminal — is still fou
 - **Sidebar footer** — a disclosure grouped by worktree: branch, thread, and
   one pill per port, tinted with BB's own accent blue so it follows the active
   theme in both light and dark mode. Hovering a pill reveals a stop button.
+- **Footer button dot** — a blue dot sits on the footer button itself while
+  anything is listening, so the card announces itself without being open. It is
+  painted onto the host's button from a content script (the registration API has
+  no badge field) and re-applies itself if BB re-renders the footer.
 - **Sidebar thread rows** — threads whose worktree has a listener get a glyph;
   its tooltip lists the ports. Turn off with the "Mark sidebar threads" setting.
+  Only BB's built-in thread list draws these: a plugin that replaces the list
+  through `experimental_threadList` (such as `bb-sidebar`) renders its own rows,
+  and plugin row statuses do not appear there.
 - **`bb ports list [--json]`**, **`bb ports release <env-id> <port>`**.
 - **`worktree_ports` agent tool** and the `worktree-ports` skill.
 

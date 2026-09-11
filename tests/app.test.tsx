@@ -130,6 +130,30 @@ describe("ports card", () => {
   });
 });
 
+describe("footer button dot", () => {
+  it("appears while the polled snapshot has ports, and goes on dispose", async () => {
+    document.body.innerHTML = `
+      <div data-sidebar="panel">
+        <li data-sidebar="menu-item" class="relative">
+          <button data-testid="plugin-sidebar-footer-item-worktree-ports-ports"></button>
+        </li>
+      </div>`;
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(SNAPSHOT))));
+    const mounted = await mountPluginContentScripts(app, { pluginId: "worktree-ports" });
+
+    const dot = await vi.waitFor(() => {
+      const found = document.querySelector("[data-worktree-ports-indicator]");
+      expect(found).not.toBeNull();
+      return found;
+    });
+    expect(dot?.getAttribute("aria-label")).toBe("2 ports listening");
+
+    await mounted.lifecycle.dispose();
+    expect(document.querySelector("[data-worktree-ports-indicator]")).toBeNull();
+    document.body.innerHTML = "";
+  });
+});
+
 describe("thread row glyphs", () => {
   it("marks every thread whose worktree is listening, and clears on unmount", async () => {
     vi.stubGlobal(
