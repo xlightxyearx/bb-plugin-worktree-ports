@@ -79,13 +79,13 @@ function GroupRow({
             <Button
               variant="secondary"
               size="sm"
-              className="h-6 gap-1 rounded-full px-2 font-mono text-[11px]"
+              className="h-6 gap-1 rounded-full border border-timeline-accent/30 bg-timeline-accent/12 px-2 font-mono text-[11px] text-timeline-accent hover:bg-timeline-accent/20"
               aria-label={`Open ${port.url}`}
               onClick={(event) => openPort(port.url, event)}
             >
               {port.port}
               {port.label === null ? null : (
-                <span className="max-w-24 truncate font-sans text-[10px] text-muted-foreground">
+                <span className="max-w-24 truncate font-sans text-[10px] text-timeline-accent/70">
                   {port.label}
                 </span>
               )}

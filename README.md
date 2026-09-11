@@ -23,7 +23,8 @@ the background — reparented to PID 1, no controlling terminal — is still fou
 ## Surfaces
 
 - **Sidebar footer** — a disclosure grouped by worktree: branch, thread, and
-  one pill per port. Hovering a pill reveals a stop button.
+  one pill per port, tinted with BB's own accent blue so it follows the active
+  theme in both light and dark mode. Hovering a pill reveals a stop button.
 - **Sidebar thread rows** — threads whose worktree has a listener get a glyph;
   its tooltip lists the ports. Turn off with the "Mark sidebar threads" setting.
 - **`bb ports list [--json]`**, **`bb ports release <env-id> <port>`**.
