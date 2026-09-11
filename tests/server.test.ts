@@ -40,6 +40,8 @@ function port(overrides: Partial<ScannedPort> & { port: number }): ScannedPort {
     processName: "node",
     source: "process",
     container: null,
+    service: null,
+    role: "app",
     label: null,
     scheme: null,
     ...overrides,
@@ -151,6 +153,37 @@ describe("bb ports list", () => {
       { hostId: "host_2", message: "lsof: command not found" },
     ]);
     expect(snapshot.groups).toHaveLength(1);
+  });
+
+  it("lists app ports first, then services and internal listeners under headings", async () => {
+    const { bb, harness } = host(() => ({
+      ports: [
+        port({ port: 8080, processName: "anton" }),
+        port({
+          port: 5432,
+          source: "docker",
+          processName: "docker",
+          container: "repo-postgres-1",
+          service: "postgres",
+          role: "service",
+        }),
+        port({ port: 63493, processName: "claude", role: "internal" }),
+      ],
+      scannedAt: 1,
+      dockerError: null,
+    }));
+    await plugin(bb);
+    const result = await harness.behavior.runCli(["list"]);
+    expect(result.stdout).toBe(
+      [
+        "bb/feature  (/w/env_a/repo)",
+        "  8080   http://localhost:8080  anton",
+        "  service:",
+        "  5432   http://localhost:5432  docker/repo-postgres-1",
+        "  internal:",
+        "  63493  http://localhost:63493  claude",
+      ].join("\n"),
+    );
   });
 
   it("says so plainly when nothing is listening", async () => {

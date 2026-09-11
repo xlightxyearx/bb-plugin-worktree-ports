@@ -1,9 +1,11 @@
-// The sidebar-footer disclosure: every worktree with something listening,
-// one pill per port.
+// The sidebar-footer disclosure: every worktree with something listening.
+// App ports lead as named pills; backing services and internal listeners sit
+// behind a muted toggle so the thing to open is never hunted for.
 import { useCallback, useEffect, useState } from "react";
 import type { MouseEvent } from "react";
 import { useBbNavigate, useRealtime, useRpc, useSettings } from "@get-bb/plugin-sdk/app";
 import type { PortGroup, PortSnapshot, rpcContract } from "../../server";
+import { pillName } from "../labels";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
@@ -46,6 +48,63 @@ function useOpenPort() {
   );
 }
 
+type Port = PortGroup["ports"][number];
+
+function ownerOf(port: Port): string {
+  return port.container === null ? port.processName : `container ${port.container}`;
+}
+
+function Pill({
+  port,
+  onRelease,
+  muted,
+}: {
+  port: Port;
+  onRelease: (port: number) => void;
+  muted: boolean;
+}) {
+  const openPort = useOpenPort();
+  return (
+    <span
+      className="group/pill relative inline-flex"
+      title={`${port.url} — ${ownerOf(port)}${port.label === null ? "" : ` — ${port.label}`}`}
+    >
+      <Button
+        variant="secondary"
+        size="sm"
+        className={cn(
+          "h-6 gap-1 rounded-full border px-2 text-[11px] [&_svg]:size-3",
+          muted
+            ? "border-border bg-muted/40 text-muted-foreground hover:bg-muted"
+            : "border-timeline-accent/30 bg-timeline-accent/12 text-timeline-accent hover:bg-timeline-accent/20",
+        )}
+        aria-label={`Open ${port.url}`}
+        onClick={(event) => openPort(port.url, event)}
+      >
+        <span className={cn("max-w-28 truncate", muted ? "" : "font-medium")}>{pillName(port)}</span>
+        <span className="font-mono opacity-80">{muted ? port.port : `:${port.port}`}</span>
+        <Icon name="ExternalLink" className="opacity-60" />
+      </Button>
+      <button
+        type="button"
+        aria-label={`Stop whatever is listening on ${port.port}`}
+        title={`Stop ${ownerOf(port)}`}
+        className={cn(
+          "absolute -right-1 -top-1 hidden size-4 items-center justify-center rounded-full",
+          "bg-destructive text-destructive-foreground group-hover/pill:flex",
+        )}
+        onClick={() => onRelease(port.port)}
+      >
+        <Icon name="Square" className="size-2" />
+      </button>
+    </span>
+  );
+}
+
+function plural(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
 function GroupRow({
   group,
   onRelease,
@@ -53,7 +112,17 @@ function GroupRow({
   group: PortGroup;
   onRelease: (port: number) => void;
 }) {
-  const openPort = useOpenPort();
+  const apps = group.ports.filter((port) => port.role === "app");
+  const services = group.ports.filter((port) => port.role === "service");
+  const internal = group.ports.filter((port) => port.role === "internal");
+  // With no app to lead, the services are the story; show them straight away.
+  const [showRest, setShowRest] = useState(apps.length === 0);
+  const restSummary = [
+    services.length > 0 ? plural(services.length, "service") : null,
+    internal.length > 0 ? plural(internal.length, "internal") : null,
+  ]
+    .filter((part) => part !== null)
+    .join(", ");
   const subtitle = group.threads[0]?.title ?? group.path;
   return (
     <li className="py-2">
@@ -67,47 +136,34 @@ function GroupRow({
         )}
       </div>
       <p className="truncate pl-5 text-[11px] text-muted-foreground">{subtitle}</p>
-      <div className="flex flex-wrap gap-1.5 pl-5 pt-1.5">
-        {group.ports.map((port) => (
-          <span
-            key={port.port}
-            className="group/pill relative inline-flex"
-            title={`${port.url} — ${
-              port.container === null ? port.processName : `container ${port.container}`
-            }${port.label === null ? "" : ` — ${port.label}`}`}
-          >
-            <Button
-              variant="secondary"
-              size="sm"
-              className="h-6 gap-1 rounded-full border border-timeline-accent/30 bg-timeline-accent/12 px-2 font-mono text-[11px] text-timeline-accent hover:bg-timeline-accent/20"
-              aria-label={`Open ${port.url}`}
-              onClick={(event) => openPort(port.url, event)}
-            >
-              {port.port}
-              {port.label === null ? null : (
-                <span className="max-w-24 truncate font-sans text-[10px] text-timeline-accent/70">
-                  {port.label}
-                </span>
-              )}
-              <Icon name="ExternalLink" className="size-2.5 opacity-60" />
-            </Button>
-            <button
-              type="button"
-              aria-label={`Stop whatever is listening on ${port.port}`}
-              title={`Stop ${
-                port.container === null ? port.processName : `container ${port.container}`
-              }`}
-              className={cn(
-                "absolute -right-1 -top-1 hidden size-4 items-center justify-center rounded-full",
-                "bg-destructive text-destructive-foreground group-hover/pill:flex",
-              )}
-              onClick={() => onRelease(port.port)}
-            >
-              <Icon name="Square" className="size-2" />
-            </button>
-          </span>
-        ))}
-      </div>
+      {apps.length === 0 ? null : (
+        <div className="flex flex-wrap gap-1.5 pl-5 pt-1.5">
+          {apps.map((port) => (
+            <Pill key={port.port} port={port} onRelease={onRelease} muted={false} />
+          ))}
+        </div>
+      )}
+      {restSummary === "" ? null : (
+        <button
+          type="button"
+          aria-expanded={showRest}
+          className="flex items-center gap-1 pl-5 pt-1.5 text-[10px] text-muted-foreground hover:text-foreground"
+          onClick={() => setShowRest((open) => !open)}
+        >
+          <Icon
+            name="ChevronRight"
+            className={cn("size-2.5 transition-transform", showRest ? "rotate-90" : "")}
+          />
+          {restSummary}
+        </button>
+      )}
+      {showRest && restSummary !== "" ? (
+        <div className="flex flex-wrap gap-1.5 pl-5 pt-1">
+          {[...services, ...internal].map((port) => (
+            <Pill key={port.port} port={port} onRelease={onRelease} muted />
+          ))}
+        </div>
+      ) : null}
     </li>
   );
 }
@@ -128,14 +184,19 @@ export function PortsCard() {
     [refetch, rpc],
   );
 
-  const total = snapshot.groups.reduce((sum, group) => sum + group.ports.length, 0);
+  const ports = snapshot.groups.flatMap((group) => group.ports);
+  const apps = ports.filter((port) => port.role === "app").length;
+  const headline =
+    ports.length === 0
+      ? "none listening"
+      : apps === 0
+        ? `${plural(ports.length, "service")}, no app`
+        : `${plural(apps, "app")}${ports.length > apps ? `, ${ports.length - apps} more` : ""}`;
   return (
     <div className="max-h-96 overflow-y-auto p-3 text-sm">
       <div className="flex items-center justify-between pb-1">
         <span className="text-xs font-medium">Worktree ports</span>
-        <span className="text-[11px] text-muted-foreground">
-          {total === 0 ? "none listening" : `${total} listening`}
-        </span>
+        <span className="text-[11px] text-muted-foreground">{headline}</span>
       </div>
       {error === null ? null : <p className="py-2 text-xs text-destructive">{error}</p>}
       {snapshot.errors.map((hostError) => (

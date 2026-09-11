@@ -20,6 +20,11 @@ export const scannedPortSchema = z.object({
   source: z.enum(["process", "docker"]),
   /** Container name for docker-sourced rows; null otherwise. */
   container: z.string().nullable(),
+  /** Compose service name (`postgres`, `redis`) for docker rows; null otherwise. */
+  service: z.string().nullable(),
+  /** What the port is for: the app under development, a backing service, or
+   *  an internal loopback listener nobody opens in a browser. */
+  role: z.enum(["app", "service", "internal"]),
   /** Friendly name from the worktree's ports.json, when it names this port. */
   label: z.string().nullable(),
   /** Scheme declared in ports.json; null leaves the choice to a heuristic. */

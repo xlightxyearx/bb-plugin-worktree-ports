@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { experimental_defineHostEntry } from "@get-bb/plugin-sdk/host";
 import { hostContract, type PortRoot, type ScannedPort } from "./src/contract.js";
+import { compareByRole, roleFor } from "./src/roles.js";
 import {
   attribute,
   parseCwds,
@@ -98,10 +99,13 @@ async function labelsFor(root: PortRoot): Promise<Map<number, PortLabel>> {
   return new Map();
 }
 
+/** A row before the label pass, which also decides its role. */
+type Unlabelled = Omit<ScannedPort, "label" | "scheme" | "role">;
+
 async function dockerPorts(
   roots: PortRoot[],
   signal: AbortSignal,
-): Promise<{ ports: Omit<ScannedPort, "label" | "scheme">[]; error: string | null }> {
+): Promise<{ ports: Unlabelled[]; error: string | null }> {
   let output: string;
   try {
     output = await execFileAsync(
@@ -109,7 +113,7 @@ async function dockerPorts(
       [
         "ps",
         "--format",
-        '{{.ID}}\t{{.Names}}\t{{.Ports}}\t{{.Label "com.docker.compose.project.working_dir"}}',
+        '{{.ID}}\t{{.Names}}\t{{.Ports}}\t{{.Label "com.docker.compose.project.working_dir"}}\t{{.Label "com.docker.compose.service"}}',
       ],
       { timeout: EXEC_TIMEOUT_MS, maxBuffer: MAX_BUFFER, signal },
     ).then((result) => result.stdout);
@@ -117,7 +121,7 @@ async function dockerPorts(
     // No docker, or the daemon is down: the process pass still stands.
     return { ports: [], error: cause instanceof Error ? cause.message : String(cause) };
   }
-  const ports: Omit<ScannedPort, "label" | "scheme">[] = [];
+  const ports: Unlabelled[] = [];
   for (const row of parseDockerRows(output)) {
     const environmentId = attribute(row.workingDir, roots);
     if (environmentId === null) continue;
@@ -130,6 +134,7 @@ async function dockerPorts(
         processName: "docker",
         source: "docker",
         container: row.name,
+        service: row.service,
       });
     }
   }
@@ -169,7 +174,7 @@ async function scanPorts(
     signal,
   );
 
-  const unlabelled: Omit<ScannedPort, "label" | "scheme">[] = [];
+  const unlabelled: Unlabelled[] = [];
   for (const listener of listeners) {
     const cwd = cwds.get(listener.pid);
     if (cwd === undefined) continue;
@@ -183,6 +188,7 @@ async function scanPorts(
       processName: listener.processName,
       source: "process",
       container: null,
+      service: null,
     });
   }
 
@@ -213,17 +219,13 @@ async function scanPorts(
     const existing = byKey.get(key);
     if (existing !== undefined && existing.source === "process") continue;
     const known = labelsByEnvironment.get(row.environmentId)?.get(row.port);
-    byKey.set(key, {
-      ...row,
-      label: known?.label ?? null,
-      scheme: known?.scheme ?? null,
-    });
+    const labelled = { ...row, label: known?.label ?? null, scheme: known?.scheme ?? null };
+    byKey.set(key, { ...labelled, role: roleFor(labelled) });
   }
 
   const ports = [...byKey.values()].sort(
     (left, right) =>
-      left.environmentId.localeCompare(right.environmentId) ||
-      left.port - right.port,
+      left.environmentId.localeCompare(right.environmentId) || compareByRole(left, right),
   );
   return { ports, scannedAt: Date.now(), dockerError };
 }

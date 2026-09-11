@@ -32,6 +32,8 @@ const SNAPSHOT: PortSnapshot = {
           processName: "node",
           source: "process",
           container: null,
+          service: null,
+          role: "app",
           label: "Frontend",
           scheme: null,
           url: "http://localhost:3000",
@@ -44,9 +46,39 @@ const SNAPSHOT: PortSnapshot = {
           processName: "docker",
           source: "docker",
           container: "repo-api-1",
+          service: "api",
+          role: "app",
           label: null,
           scheme: "https",
           url: "https://localhost:4443",
+        },
+        {
+          environmentId: "env_a",
+          port: 5432,
+          address: "0.0.0.0",
+          pid: 0,
+          processName: "docker",
+          source: "docker",
+          container: "repo-postgres-1",
+          service: "postgres",
+          role: "service",
+          label: null,
+          scheme: null,
+          url: "http://localhost:5432",
+        },
+        {
+          environmentId: "env_a",
+          port: 63493,
+          address: "127.0.0.1",
+          pid: 7,
+          processName: "claude",
+          source: "process",
+          container: null,
+          service: null,
+          role: "internal",
+          label: null,
+          scheme: null,
+          url: "http://localhost:63493",
         },
       ],
     },
@@ -64,7 +96,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function card(settings?: Record<string, string>) {
+function card(settings?: Record<string, string>, snapshot: PortSnapshot = SNAPSHOT) {
   const disclosure = app.experimentalSidebarFooterItems.find(
     (item) => item.id === "ports",
   );
@@ -76,7 +108,7 @@ function card(settings?: Record<string, string>) {
     { dismiss: () => {} },
     {
       rpc: {
-        ports_snapshot: () => SNAPSHOT,
+        ports_snapshot: () => snapshot,
         ports_release: () => ({ released: true, detail: "sent SIGTERM to node (42)" }),
       },
       ...(settings === undefined ? {} : { settings }),
@@ -86,13 +118,34 @@ function card(settings?: Record<string, string>) {
 }
 
 describe("ports card", () => {
-  it("draws a pill per port under its branch", async () => {
+  it("leads with named app pills and keeps the rest behind a toggle", async () => {
     const slot = card();
     await slot.findByText("bb/feature");
-    expect(await slot.findByText("3000")).toBeTruthy();
-    expect(await slot.findByText("4443")).toBeTruthy();
+    expect(await slot.findByText(":3000")).toBeTruthy();
     expect(await slot.findByText("Frontend")).toBeTruthy();
-    expect(await slot.findByText("2 listening")).toBeTruthy();
+    expect(await slot.findByText(":4443")).toBeTruthy();
+    expect(await slot.findByText("2 apps, 2 more")).toBeTruthy();
+    expect(slot.queryByText("5432")).toBeNull();
+    expect(slot.queryByText("postgres")).toBeNull();
+
+    (await slot.findByText("1 service, 1 internal")).click();
+    expect(await slot.findByText("postgres")).toBeTruthy();
+    expect(await slot.findByText("5432")).toBeTruthy();
+    expect(await slot.findByText("claude")).toBeTruthy();
+    expect(await slot.findByLabelText("Open http://localhost:63493")).toBeTruthy();
+  });
+
+  it("shows services straight away when a worktree has no app port", async () => {
+    const services = {
+      ...SNAPSHOT,
+      groups: SNAPSHOT.groups.map((group) => ({
+        ...group,
+        ports: group.ports.filter((port) => port.role === "service"),
+      })),
+    };
+    const slot = card(undefined, services);
+    expect(await slot.findByText("postgres")).toBeTruthy();
+    expect(await slot.findByText("1 service, no app")).toBeTruthy();
   });
 
   it("hands a plain click to BB's own browser preference", async () => {
@@ -146,7 +199,7 @@ describe("footer button dot", () => {
       expect(found).not.toBeNull();
       return found;
     });
-    expect(dot?.getAttribute("aria-label")).toBe("2 ports listening");
+    expect(dot?.getAttribute("aria-label")).toBe("4 ports listening");
 
     await mounted.lifecycle.dispose();
     expect(document.querySelector("[data-worktree-ports-indicator]")).toBeNull();
@@ -164,7 +217,7 @@ describe("thread row glyphs", () => {
     await vi.waitFor(() =>
       expect(mounted.inspection.getThreadRowStatus("thr_1")).toEqual({
         icon: "ElectricPlugs",
-        label: "2 listening: 3000, 4443",
+        label: "Frontend :3000 · api :4443 · 2 others",
         tone: "success",
       }),
     );

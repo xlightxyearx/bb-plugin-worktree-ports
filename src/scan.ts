@@ -19,6 +19,8 @@ export interface DockerRow {
   id: string;
   name: string;
   workingDir: string;
+  /** com.docker.compose.service, or null for a container outside compose. */
+  service: string | null;
   ports: { port: number; address: string }[];
 }
 
@@ -71,18 +73,19 @@ export function parseCwds(output: string): Map<number, string> {
   return cwds;
 }
 
-/** `docker ps` rows formatted as id \t name \t ports \t compose working dir. */
+/** `docker ps` rows: id \t name \t ports \t compose working dir \t compose service. */
 export function parseDockerRows(output: string): DockerRow[] {
   const rows: DockerRow[] = [];
   for (const line of output.split("\n")) {
     if (line.trim() === "") continue;
-    const [id, name, ports, workingDir] = line.split("\t");
+    const [id, name, ports, workingDir, service] = line.split("\t");
     if (id === undefined || name === undefined || workingDir === undefined) continue;
     if (workingDir.trim() === "") continue;
     rows.push({
       id,
       name,
       workingDir: workingDir.trim(),
+      service: service === undefined || service.trim() === "" ? null : service.trim(),
       ports: parseDockerPorts(ports ?? ""),
     });
   }

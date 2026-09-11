@@ -76,17 +76,22 @@ describe("parseDockerPorts", () => {
 describe("parseDockerRows", () => {
   it("drops containers with no compose working directory", () => {
     const output = [
-      "abc\tstack-db-1\t0.0.0.0:5432->5432/tcp\t/work/tree",
-      "def\tstray\t0.0.0.0:9999->9999/tcp\t",
+      "abc\tstack-db-1\t0.0.0.0:5432->5432/tcp\t/work/tree\tdb",
+      "def\tstray\t0.0.0.0:9999->9999/tcp\t\t",
     ].join("\n");
     expect(parseDockerRows(output)).toEqual([
       {
         id: "abc",
         name: "stack-db-1",
         workingDir: "/work/tree",
+        service: "db",
         ports: [{ port: 5432, address: "0.0.0.0" }],
       },
     ]);
+  });
+
+  it("leaves the service null for a container outside compose", () => {
+    expect(parseDockerRows("abc\tlone\t0.0.0.0:80->80/tcp\t/work/tree\t")[0]?.service).toBeNull();
   });
 });
 

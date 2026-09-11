@@ -3,6 +3,7 @@
 // whose worktree is serving something.
 import { definePluginApp } from "@get-bb/plugin-sdk/app";
 import type { PortSnapshot } from "./server";
+import { pillName } from "./src/labels";
 import { createFooterIndicator } from "./src/ui/footer-indicator";
 import { PortsCard } from "./src/ui/ports-card";
 
@@ -10,6 +11,15 @@ const PLUGIN_ID = "worktree-ports";
 const FOOTER_ITEM_ID = "ports";
 const SNAPSHOT_URL = `/api/v1/plugins/${PLUGIN_ID}/http/snapshot`;
 const POLL_MS = 5_000;
+
+/** "anton :8080 · 7 services" — the app ports by name, the rest as a count. */
+function threadRowLabel(group: PortSnapshot["groups"][number]): string {
+  const apps = group.ports.filter((port) => port.role === "app");
+  const rest = group.ports.length - apps.length;
+  const parts = apps.map((port) => `${pillName(port)} :${port.port}`);
+  if (rest > 0) parts.push(`${rest} ${rest === 1 ? "other" : "others"}`);
+  return parts.length === 0 ? "nothing listening" : parts.join(" · ");
+}
 
 export default definePluginApp((app) => {
   app.experimental_sidebarFooter.register({
@@ -38,12 +48,11 @@ export default definePluginApp((app) => {
         const next = new Set<string>();
         if (snapshot.threadRowIcons) {
           for (const group of snapshot.groups) {
-            const ports = group.ports.map((port) => port.port).join(", ");
             for (const thread of group.threads) {
               next.add(thread.id);
               setStatus(thread.id, {
                 icon: "ElectricPlugs",
-                label: `${group.ports.length} listening: ${ports}`,
+                label: threadRowLabel(group),
                 tone: "success",
               });
             }

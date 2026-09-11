@@ -17,6 +17,13 @@ bb ports list           # grouped by worktree, with URLs
 bb ports list --json    # same data for scripting
 ```
 
+Under each worktree the app ports come first, unheaded; backing services
+(Docker published ports, databases, well-known service ports) follow under
+`service:`, and loopback listeners on ephemeral ports under `internal:`. When
+asked "which port is the dev server on", answer with the app lines. In the JSON
+each port carries `role` (`app` | `service` | `internal`) and, for compose
+containers, `service`.
+
 The `worktree_ports` agent tool returns the same listing, and takes an optional
 `environmentId` (`env_*`) to scope it to one worktree.
 
@@ -47,4 +54,6 @@ Superset needs no second file.
 
 Discovery stays authoritative: labels only name ports that are already
 listening, entries for ports that are not listening are ignored, and a
-malformed file labels nothing rather than hiding the ports.
+malformed file labels nothing rather than hiding the ports. A labelled port is
+always shown as an app, which is how to promote a Docker-served app or a
+loopback server on a high port out of the services or internal tier.

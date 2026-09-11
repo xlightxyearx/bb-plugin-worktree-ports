@@ -345,13 +345,20 @@ export default async function plugin(bb: BbPluginApi) {
     ports_release: ({ environmentId, port }) => releasePort(environmentId, port),
   });
 
+  // App ports lead, then backing services, then internal listeners, so the
+  // first line under a worktree is the one to open.
   function formatSnapshot(value: PortSnapshot): string {
     if (value.groups.length === 0) return "No listening ports in any workspace.";
     const lines: string[] = [];
     for (const group of value.groups) {
       lines.push(`${group.branchName ?? group.name ?? group.path}  (${group.path})`);
-      for (const port of group.ports) {
-        lines.push(`  ${String(port.port).padEnd(6)} ${port.url}  ${describe(port)}`);
+      for (const role of ["app", "service", "internal"] as const) {
+        const rows = group.ports.filter((port) => port.role === role);
+        if (rows.length === 0) continue;
+        if (role !== "app") lines.push(`  ${role}:`);
+        for (const port of rows) {
+          lines.push(`  ${String(port.port).padEnd(6)} ${port.url}  ${describe(port)}`);
+        }
       }
     }
     for (const error of value.errors) lines.push(`! ${error.hostId}: ${error.message}`);
