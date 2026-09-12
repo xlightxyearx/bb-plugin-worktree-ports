@@ -6,7 +6,6 @@ import type { MouseEvent } from "react";
 import { useBbNavigate, useRealtime, useRpc, useSettings } from "@get-bb/plugin-sdk/app";
 import type { PortGroup, PortSnapshot, rpcContract } from "../../server";
 import { pillName } from "../labels";
-import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 
@@ -66,37 +65,35 @@ function Pill({
   const openPort = useOpenPort();
   return (
     <span
-      className="group/pill relative inline-flex"
+      className={cn(
+        "group/pill inline-flex h-6 items-center rounded-full border pl-2 pr-1 text-[11px] transition-colors",
+        muted
+          ? "border-border bg-muted/40 text-muted-foreground hover:border-foreground/30 hover:bg-muted hover:text-foreground"
+          : "border-timeline-accent/30 bg-timeline-accent/12 text-timeline-accent hover:border-timeline-accent hover:bg-timeline-accent/25",
+      )}
       title={`${port.url} — ${ownerOf(port)}${port.label === null ? "" : ` — ${port.label}`}`}
     >
-      <Button
-        variant="secondary"
-        size="sm"
-        className={cn(
-          "h-6 gap-1 rounded-full border px-2 text-[11px] [&_svg]:size-3",
-          muted
-            ? "border-border bg-muted/40 text-muted-foreground hover:bg-muted"
-            : "border-timeline-accent/30 bg-timeline-accent/12 text-timeline-accent hover:bg-timeline-accent/20",
-        )}
+      <button
+        type="button"
+        className="flex items-center gap-1 pr-1"
         aria-label={`Open ${port.url}`}
         onClick={(event) => openPort(port.url, event)}
       >
         <span className={cn("max-w-28 truncate", muted ? "" : "font-medium")}>{pillName(port)}</span>
         <span className="font-mono opacity-80">{muted ? port.port : `:${port.port}`}</span>
-        <Icon name="ExternalLink" className="opacity-60" />
-      </Button>
-      <button
-        type="button"
-        aria-label={`Stop whatever is listening on ${port.port}`}
-        title={`Stop ${ownerOf(port)}`}
-        className={cn(
-          "absolute -right-1 -top-1 hidden size-4 items-center justify-center rounded-full",
-          "bg-destructive text-destructive-foreground group-hover/pill:flex",
-        )}
-        onClick={() => onRelease(port.port)}
-      >
-        <Icon name="Square" className="size-2" />
       </button>
+      <span className="relative flex size-4 items-center justify-center">
+        <Icon name="ExternalLink" className="size-3 opacity-60 group-hover/pill:hidden" />
+        <button
+          type="button"
+          aria-label={`Stop whatever is listening on ${port.port}`}
+          title={`Stop ${ownerOf(port)}`}
+          className="hidden size-4 items-center justify-center rounded-full text-destructive hover:bg-destructive hover:text-destructive-foreground group-hover/pill:flex"
+          onClick={() => onRelease(port.port)}
+        >
+          <Icon name="Square" className="size-2.5" />
+        </button>
+      </span>
     </span>
   );
 }
