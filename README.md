@@ -3,9 +3,7 @@
 Shows what each BB worktree is serving, in the sidebar footer. Click a port
 pill to open it.
 
-![The ports card: the app port leads, services and internal listeners behind a toggle](screenshots/card-light.png)
-
-![The card in the sidebar, dark theme, with the footer dot lit](screenshots/sidebar-dark.png)
+![The ports card in light and dark themes: the app port leads, services behind a toggle](screenshots/card-pair.png)
 
 ## How ports are found
 
