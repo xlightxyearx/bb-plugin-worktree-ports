@@ -1,6 +1,14 @@
 {
   "name": "bb-plugin-worktree-ports",
   "version": "0.1.0",
+  "description": "Show the ports listening in each BB worktree, in the sidebar",
+  "license": "MIT",
+  "author": "xlightxyearx",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xlightxyearx/bb-plugin-worktree-ports.git"
+  },
+  "homepage": "https://github.com/xlightxyearx/bb-plugin-worktree-ports#readme",
   "type": "module",
   "engines": {
     "bb": ">=0.42",
@@ -58,7 +66,6 @@
     "vaul": "^1.1.2",
     "vitest": "^3.2.4"
   },
-  "description": "Show the ports listening in each BB worktree, in the sidebar",
   "scripts": {
     "build": "bb plugin build",
     "test": "vitest run",
