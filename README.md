@@ -36,10 +36,10 @@ the background — reparented to PID 1, no controlling terminal — is still fou
 ## Surfaces
 
 - **Sidebar footer** — a disclosure grouped by worktree: branch, thread, then
-  one accent-blue pill per app port showing its name and port (`anton :8080`).
+  one accent-blue pill per app port showing its name and port (`node :5173`).
   Services and internal listeners sit behind a muted "7 services, 1 internal"
   toggle, expanded by default only when a worktree has no app port. Hovering
-  any pill reveals a stop button.
+  a pill lights it and shows a stop control at its edge.
 - **Footer button dot** — a blue dot sits on the footer button itself while
   anything is listening, so the card announces itself without being open. It is
   painted onto the host's button from a content script (the registration API has
