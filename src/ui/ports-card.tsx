@@ -105,9 +105,11 @@ function plural(count: number, noun: string): string {
 function GroupRow({
   group,
   onRelease,
+  showHost,
 }: {
   group: PortGroup;
   onRelease: (port: number) => void;
+  showHost: boolean;
 }) {
   const apps = group.ports.filter((port) => port.role === "app");
   const services = group.ports.filter((port) => port.role === "service");
@@ -128,7 +130,7 @@ function GroupRow({
         <span className="min-w-0 flex-1 truncate text-xs font-medium">
           {group.branchName ?? group.name ?? group.path}
         </span>
-        {group.hostName === null ? null : (
+        {!showHost || group.hostName === null ? null : (
           <span className="shrink-0 text-[10px] text-muted-foreground">{group.hostName}</span>
         )}
       </div>
@@ -182,6 +184,8 @@ export function PortsCard() {
   );
 
   const ports = snapshot.groups.flatMap((group) => group.ports);
+  // The machine name only disambiguates once worktrees span more than one.
+  const showHost = new Set(snapshot.groups.map((group) => group.hostId)).size > 1;
   const apps = ports.filter((port) => port.role === "app").length;
   const services = ports.filter((port) => port.role === "service").length;
   const internal = ports.length - apps - services;
@@ -215,6 +219,7 @@ export function PortsCard() {
             <GroupRow
               key={group.environmentId}
               group={group}
+              showHost={showHost}
               onRelease={(port) => release(group.environmentId, port)}
             />
           ))}

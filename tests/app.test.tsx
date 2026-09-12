@@ -135,6 +135,24 @@ describe("ports card", () => {
     expect(await slot.findByLabelText("Open http://localhost:63493")).toBeTruthy();
   });
 
+  it("names the machine only when worktrees span more than one", async () => {
+    const one = card();
+    await one.findByText("bb/feature");
+    expect(one.queryByText("Laptop")).toBeNull();
+    cleanup();
+
+    const group = SNAPSHOT.groups[0]!;
+    const two = card(undefined, {
+      ...SNAPSHOT,
+      groups: [
+        group,
+        { ...group, environmentId: "env_b", hostId: "host_2", hostName: "Desktop", branchName: "bb/other" },
+      ],
+    });
+    expect(await two.findByText("Laptop")).toBeTruthy();
+    expect(await two.findByText("Desktop")).toBeTruthy();
+  });
+
   it("shows services straight away when a worktree has no app port", async () => {
     const services = {
       ...SNAPSHOT,
