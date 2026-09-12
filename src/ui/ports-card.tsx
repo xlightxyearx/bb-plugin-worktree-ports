@@ -186,12 +186,16 @@ export function PortsCard() {
 
   const ports = snapshot.groups.flatMap((group) => group.ports);
   const apps = ports.filter((port) => port.role === "app").length;
+  const services = ports.filter((port) => port.role === "service").length;
+  const internal = ports.length - apps - services;
   const headline =
     ports.length === 0
       ? "none listening"
-      : apps === 0
-        ? `${plural(ports.length, "service")}, no app`
-        : `${plural(apps, "app")}${ports.length > apps ? `, ${ports.length - apps} more` : ""}`;
+      : apps > 0
+        ? `${plural(apps, "app")}${ports.length > apps ? `, ${ports.length - apps} more` : ""}`
+        : services > 0
+          ? `${plural(services, "service")}, no app`
+          : `${plural(internal, "internal")}, no app`;
   return (
     <div className="max-h-96 overflow-y-auto p-3 text-sm">
       <div className="flex items-center justify-between pb-1">

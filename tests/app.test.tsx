@@ -148,6 +148,18 @@ describe("ports card", () => {
     expect(await slot.findByText("1 service, no app")).toBeTruthy();
   });
 
+  it("does not call an internal listener a service in the header", async () => {
+    const internal = {
+      ...SNAPSHOT,
+      groups: SNAPSHOT.groups.map((group) => ({
+        ...group,
+        ports: group.ports.filter((port) => port.role === "internal"),
+      })),
+    };
+    const slot = card(undefined, internal);
+    expect(await slot.findByText("1 internal, no app")).toBeTruthy();
+  });
+
   it("hands a plain click to BB's own browser preference", async () => {
     const slot = card();
     (await slot.findByLabelText("Open http://localhost:3000")).click();
