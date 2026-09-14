@@ -36,7 +36,8 @@ the background — reparented to PID 1, no controlling terminal — is still fou
 - **Sidebar footer** — a disclosure grouped by worktree: branch, thread, then
   one accent-blue pill per app port showing its name and port (`node :5173`).
   Services and internal listeners sit behind a muted "7 services, 1 internal"
-  toggle, expanded by default only when a worktree has no app port. Hovering
+  toggle, expanded by default only when a worktree has no app port. Internal ports
+  are hidden unless "Show internal ports in the card" is enabled. Hovering
   a pill lights it and shows a stop control at its edge.
 - **Footer button dot** — a blue dot sits on the footer button itself while
   anything is listening, so the card announces itself without being open. It is
@@ -86,6 +87,7 @@ the 443 family are assumed HTTPS.
 | Ignore ports | — | comma separated |
 | Ignore processes | — | comma separated, matched on the process name |
 | Open ports in | BB browser preference | or System browser |
+| Show internal ports in the card | off | hides internal-only worktrees too |
 | Mark sidebar threads that have listening ports | on | |
 
 ## Limits

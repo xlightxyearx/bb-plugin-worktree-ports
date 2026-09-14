@@ -169,6 +169,13 @@ function GroupRow({
 
 export function PortsCard() {
   const { snapshot, error, refetch, rpc } = useSnapshot();
+  const { values } = useSettings();
+  const groups = snapshot.groups
+    .map((group) => ({
+      ...group,
+      ports: group.ports.filter((port) => values?.showInternalPorts === true || port.role !== "internal"),
+    }))
+    .filter((group) => group.ports.length > 0);
   const [notice, setNotice] = useState<string | null>(null);
   const release = useCallback(
     (environmentId: string, port: number) => {
@@ -183,15 +190,15 @@ export function PortsCard() {
     [refetch, rpc],
   );
 
-  const ports = snapshot.groups.flatMap((group) => group.ports);
+  const ports = groups.flatMap((group) => group.ports);
   // The machine name only disambiguates once worktrees span more than one.
-  const showHost = new Set(snapshot.groups.map((group) => group.hostId)).size > 1;
+  const showHost = new Set(groups.map((group) => group.hostId)).size > 1;
   const apps = ports.filter((port) => port.role === "app").length;
   const services = ports.filter((port) => port.role === "service").length;
   const internal = ports.length - apps - services;
   const headline =
     ports.length === 0
-      ? "none listening"
+      ? "none visible"
       : apps > 0
         ? `${plural(apps, "app")}${ports.length > apps ? `, ${ports.length - apps} more` : ""}`
         : services > 0
@@ -209,13 +216,13 @@ export function PortsCard() {
           {hostError.hostId}: {hostError.message}
         </p>
       ))}
-      {snapshot.groups.length === 0 ? (
+      {groups.length === 0 ? (
         <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-xs text-muted-foreground">
-          Nothing is listening in any workspace yet.
+          No ports to show with the current settings.
         </p>
       ) : (
         <ul className="divide-y divide-border">
-          {snapshot.groups.map((group) => (
+          {groups.map((group) => (
             <GroupRow
               key={group.environmentId}
               group={group}

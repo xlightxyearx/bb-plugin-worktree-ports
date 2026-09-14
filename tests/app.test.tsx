@@ -96,7 +96,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function card(settings?: Record<string, string>, snapshot: PortSnapshot = SNAPSHOT) {
+function card(settings?: Record<string, string | boolean>, snapshot: PortSnapshot = SNAPSHOT) {
   const disclosure = app.experimentalSidebarFooterItems.find(
     (item) => item.id === "ports",
   );
@@ -124,15 +124,15 @@ describe("ports card", () => {
     expect(await slot.findByText(":3000")).toBeTruthy();
     expect(await slot.findByText("Frontend")).toBeTruthy();
     expect(await slot.findByText(":4443")).toBeTruthy();
-    expect(await slot.findByText("2 apps, 2 more")).toBeTruthy();
+    expect(await slot.findByText("2 apps, 1 more")).toBeTruthy();
     expect(slot.queryByText("5432")).toBeNull();
     expect(slot.queryByText("postgres")).toBeNull();
 
-    (await slot.findByText("1 service, 1 internal")).click();
+    (await slot.findByText("1 service")).click();
     expect(await slot.findByText("postgres")).toBeTruthy();
     expect(await slot.findByText("5432")).toBeTruthy();
-    expect(await slot.findByText("claude")).toBeTruthy();
-    expect(await slot.findByLabelText("Open http://localhost:63493")).toBeTruthy();
+    expect(slot.queryByText("claude")).toBeNull();
+    expect(slot.queryByLabelText("Open http://localhost:63493")).toBeNull();
   });
 
   it("names the machine only when worktrees span more than one", async () => {
@@ -166,6 +166,18 @@ describe("ports card", () => {
     expect(await slot.findByText("1 service, no app")).toBeTruthy();
   });
 
+  it("hides internal-only worktrees and excludes their ports from the count", async () => {
+    const group = SNAPSHOT.groups[0]!;
+    const slot = card(undefined, {
+      ...SNAPSHOT,
+      groups: [{ ...group, ports: group.ports.filter((port) => port.role === "internal") }],
+    });
+    expect(await slot.findByText("No ports to show with the current settings.")).toBeTruthy();
+    expect(slot.queryByText("bb/feature")).toBeNull();
+    expect(slot.queryByText("1 internal")).toBeNull();
+    expect(await slot.findByText("none visible")).toBeTruthy();
+  });
+
   it("does not call an internal listener a service in the header", async () => {
     const internal = {
       ...SNAPSHOT,
@@ -174,8 +186,9 @@ describe("ports card", () => {
         ports: group.ports.filter((port) => port.role === "internal"),
       })),
     };
-    const slot = card(undefined, internal);
+    const slot = card({ showInternalPorts: true }, internal);
     expect(await slot.findByText("1 internal, no app")).toBeTruthy();
+    expect(await slot.findByLabelText("Open http://localhost:63493")).toBeTruthy();
   });
 
   it("hands a plain click to BB's own browser preference", async () => {

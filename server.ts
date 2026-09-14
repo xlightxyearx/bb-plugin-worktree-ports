@@ -93,6 +93,11 @@ export default async function plugin(bb: BbPluginApi) {
       options: ["BB browser preference", "System browser"],
       default: "BB browser preference",
     },
+    showInternalPorts: {
+      type: "boolean",
+      label: "Show internal ports in the card",
+      default: false,
+    },
     showThreadRowIcon: {
       type: "boolean",
       label: "Mark sidebar threads that have listening ports",
