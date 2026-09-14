@@ -22,6 +22,8 @@ const SNAPSHOT: PortSnapshot = {
       branchName: "bb/feature",
       path: "/w/env_a/repo",
       projectId: "proj_1",
+      projectName: "My project",
+      repoName: "my-repo",
       threads: [{ id: "thr_1", title: "Feature work" }],
       ports: [
         {
@@ -120,7 +122,8 @@ function card(settings?: Record<string, string>, snapshot: PortSnapshot = SNAPSH
 describe("ports card", () => {
   it("leads with named app pills and keeps the rest behind a toggle", async () => {
     const slot = card();
-    await slot.findByText("bb/feature");
+    await slot.findByText("My project · bb/feature");
+    expect(slot.queryByText("bb/feature")).toBeNull();
     expect(await slot.findByText(":3000")).toBeTruthy();
     expect(await slot.findByText("Frontend")).toBeTruthy();
     expect(await slot.findByText(":4443")).toBeTruthy();
@@ -137,7 +140,7 @@ describe("ports card", () => {
 
   it("names the machine only when worktrees span more than one", async () => {
     const one = card();
-    await one.findByText("bb/feature");
+    await one.findByText("My project · bb/feature");
     expect(one.queryByText("Laptop")).toBeNull();
     cleanup();
 

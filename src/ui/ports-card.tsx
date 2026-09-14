@@ -122,13 +122,15 @@ function GroupRow({
   ]
     .filter((part) => part !== null)
     .join(", ");
+  const heading = [group.projectName || group.repoName || group.name, group.branchName]
+    .filter(Boolean).join(" · ") || group.path;
   const subtitle = group.threads[0]?.title ?? group.path;
   return (
     <li className="py-2">
       <div className="flex items-baseline gap-2">
         <Icon name="GitBranch" className="size-3.5 shrink-0 text-muted-foreground" />
-        <span className="min-w-0 flex-1 truncate text-xs font-medium">
-          {group.branchName ?? group.name ?? group.path}
+        <span className="min-w-0 flex-1 truncate text-xs font-medium" title={heading}>
+          {heading}
         </span>
         {!showHost || group.hostName === null ? null : (
           <span className="shrink-0 text-[10px] text-muted-foreground">{group.hostName}</span>
