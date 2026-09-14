@@ -57,6 +57,7 @@ function host(
     experimental_hostEntry: true,
     settings,
     sdk: {
+      projects: { get: async () => ({ name: "My project", gitRemoteUrl: "git@github.com:owner/my-repo.git", sources: [] }) },
       threads: { list: async () => THREADS },
       environments: {
         get: async ({ environmentId }: { environmentId: string }) => {
@@ -94,6 +95,8 @@ describe("bb ports list", () => {
     expect(snapshot.groups).toHaveLength(1);
     expect(snapshot.groups[0].environmentId).toBe("env_a");
     expect(snapshot.groups[0].hostName).toBe("Laptop");
+    expect(snapshot.groups[0].projectName).toBe("My project");
+    expect(snapshot.groups[0].repoName).toBe("my-repo");
     expect(snapshot.groups[0].threads).toEqual([
       { id: "thr_1", title: "Feature work" },
       { id: "thr_2", title: "Second thread" },

@@ -21,6 +21,8 @@ const groupSchema = z.object({
   branchName: z.string().nullable(),
   path: z.string(),
   projectId: z.string(),
+  projectName: z.string().nullable(),
+  repoName: z.string().nullable(),
   threads: z.array(z.object({ id: z.string(), title: z.string() })),
   ports: z.array(scannedPortSchema.extend({ url: z.string() })),
 });
@@ -108,11 +110,33 @@ export default async function plugin(bb: BbPluginApi) {
     name: string | null;
     branchName: string | null;
     projectId: string;
+    projectName: string | null;
+    repoName: string | null;
   }
   const environmentCache = new Map<
     string,
     { loadedAt: number; facts: EnvironmentFacts | null }
   >();
+  const projectCache = new Map<string, {
+    loadedAt: number;
+    project: Awaited<ReturnType<typeof bb.sdk.projects.get>> | null;
+  }>();
+
+  async function projectFacts(projectId: string) {
+    const cached = projectCache.get(projectId);
+    if (cached !== undefined && Date.now() - cached.loadedAt < ENVIRONMENT_CACHE_MS) {
+      return cached.project;
+    }
+    let project: Awaited<ReturnType<typeof bb.sdk.projects.get>> | null = null;
+    try {
+      project = await bb.sdk.projects.get({ projectId });
+    } catch (cause) {
+      bb.log.debug(`project ${projectId} unreadable: ${String(cause)}`);
+    }
+    projectCache.set(projectId, { loadedAt: Date.now(), project });
+    return project;
+  }
+
   const hostNames = new Map<string, string>();
   let hostNamesLoadedAt = 0;
 
@@ -128,12 +152,19 @@ export default async function plugin(bb: BbPluginApi) {
       const environment = await bb.sdk.environments.get({ environmentId });
       // A provisioning or destroyed worktree has nothing worth scanning.
       if (environment.path !== null && environment.status === "ready") {
+        const project = await projectFacts(environment.projectId);
+        const source = project?.sources.find((entry) => entry.hostId === environment.hostId && entry.isDefault)
+          ?? project?.sources.find((entry) => entry.hostId === environment.hostId);
+        const repoPath = project?.gitRemoteUrl?.replace(/[?#].*$/, "") ?? source?.path ?? environment.path;
+        const repoName = repoPath.replace(/\/+$/, "").split(/[/:]/).pop()?.replace(/\.git$/, "") || null;
         facts = {
           hostId: environment.hostId,
           path: environment.path,
           name: environment.name,
           branchName: environment.branchName,
           projectId: environment.projectId,
+          projectName: project?.name ?? null,
+          repoName,
         };
       }
     } catch (cause) {
@@ -252,6 +283,8 @@ export default async function plugin(bb: BbPluginApi) {
         branchName: workspace.branchName,
         path: workspace.path,
         projectId: workspace.projectId,
+        projectName: workspace.projectName,
+        repoName: workspace.repoName,
         threads: workspace.threads,
         ports: own.map((port) => ({ ...port, url: urlFor(port) })),
       });
@@ -274,6 +307,8 @@ export default async function plugin(bb: BbPluginApi) {
       next.groups.map((group) => [
         group.environmentId,
         group.branchName,
+        group.projectName,
+        group.repoName,
         group.threads.map((thread) => thread.id),
         group.ports.map((port) => [port.port, port.pid, port.label, port.container]),
       ]),

@@ -33,7 +33,7 @@ the background — reparented to PID 1, no controlling terminal — is still fou
 
 ## Surfaces
 
-- **Sidebar footer** — a disclosure grouped by worktree: branch, thread, then
+- **Sidebar footer** — a disclosure grouped by worktree: project · branch, thread, then
   one accent-blue pill per app port showing its name and port (`node :5173`).
   Services and internal listeners sit behind a muted "7 services, 1 internal"
   toggle, expanded by default only when a worktree has no app port. Hovering
